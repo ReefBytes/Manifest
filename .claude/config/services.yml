@@ -1,0 +1,48 @@
+# Service Configuration
+# This file is generated/updated by bootstrap.sh
+# Controls which AI agents are enabled for parallel orchestration.
+#
+# To reconfigure: ./bootstrap.sh --reconfigure [--enable|--disable]-<service>
+# Or edit this file directly and restart parallel_agent.sh
+
+services:
+  # Claude Code CLI - Anthropic's AI assistant
+  # Install: npm install -g @anthropic-ai/claude-code
+  claude:
+    enabled: true
+    command: claude
+    description: "Deep reasoning, security analysis, complex logic"
+    model_tiers:
+      - haiku    # Fast, economical
+      - sonnet   # Balanced (default)
+      - opus     # Maximum capability
+
+  # Gemini CLI - Google's AI assistant
+  # Install: npm install -g @google/gemini-cli
+  gemini:
+    enabled: true
+    command: gemini
+    description: "Broad knowledge, creative solutions, research"
+    model_tiers:
+      - flash    # Fast (default)
+      - pro      # Advanced
+
+  # Cursor Agent - IDE-integrated AI
+  # Install: Download from https://cursor.sh
+  cursor:
+    enabled: true
+    command: cursor
+    description: "IDE-integrated context, code-specific analysis"
+    model_tiers:
+      - mini     # Lightweight
+      - flash    # Balanced (default)
+      - advanced # Maximum capability
+
+# Minimum agents required for parallel orchestration
+# If fewer than this many services are enabled, parallel features are disabled
+minimum_agents: 2
+
+# Fallback behavior when enabled services are unavailable
+fallback:
+  strategy: continue_with_available  # Options: continue_with_available, abort, warn_user
+  warn_threshold: 1  # Warn if only this many agents available

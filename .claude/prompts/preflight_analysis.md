@@ -1,0 +1,224 @@
+# Validation Criteria Configuration
+# Used by Claude orchestrator for code review validation
+
+tier1:
+  # Critical criteria - all must pass
+
+  cross_verification:
+    weight: 0.30
+    description: "Multiple agents agree on key findings"
+    threshold: 0.80
+    enabled: true
+
+  security:
+    weight: 0.30
+    description: "No security vulnerabilities introduced"
+    keywords:
+      - auth
+      - password
+      - secret
+      - token
+      - api_key
+      - crypto
+      - jwt
+      - session
+      - cookie
+      - credential
+      - private_key
+    checks:
+      - id: no_hardcoded_secrets
+        description: "No hardcoded secrets or credentials"
+        severity: critical
+      - id: input_validation
+        description: "User input is validated and sanitized"
+        severity: critical
+      - id: no_sql_injection
+        description: "Parameterized queries used for database access"
+        severity: critical
+      - id: no_command_injection
+        description: "User input not passed to shell commands"
+        severity: critical
+      - id: no_xss
+        description: "Output properly escaped to prevent XSS"
+        severity: critical
+      - id: auth_checks
+        description: "Authentication/authorization properly enforced"
+        severity: critical
+
+  error_handling:
+    weight: 0.20
+    description: "Errors handled gracefully without information leakage"
+    checks:
+      - id: exceptions_caught
+        description: "Exceptions properly caught and handled"
+        severity: high
+      - id: no_silent_failures
+        description: "No silent failures that hide problems"
+        severity: high
+      - id: safe_error_messages
+        description: "Error messages don't leak internal details"
+        severity: medium
+      - id: resource_cleanup
+        description: "Resources properly cleaned up on failure"
+        severity: medium
+
+  breaking_changes:
+    weight: 0.20
+    description: "API and data compatibility maintained"
+    checks:
+      - id: api_compatibility
+        description: "Public API signatures unchanged or versioned"
+        severity: high
+      - id: migrations_provided
+        description: "Database migrations provided for schema changes"
+        severity: high
+      - id: deprecation_warnings
+        description: "Deprecation warnings added for removed features"
+        severity: medium
+
+tier2:
+  # Quality criteria - noted but not blocking
+
+  bug_detection:
+    weight: 0.25
+    description: "No obvious bugs or logic errors"
+    patterns:
+      - id: null_reference
+        description: "Potential null/undefined reference"
+        regex: "\\.(\\w+)\\s*\\("
+      - id: off_by_one
+        description: "Potential off-by-one error in loops"
+        regex: "(<=|>=).*\\.length"
+      - id: race_condition
+        description: "Potential race condition"
+        keywords: [async, await, Promise, setTimeout, concurrent]
+      - id: infinite_loop
+        description: "Potential infinite loop"
+        regex: "while\\s*\\(\\s*true\\s*\\)"
+
+  performance:
+    weight: 0.25
+    description: "No performance anti-patterns"
+    antipatterns:
+      - id: quadratic_complexity
+        description: "O(n^2) or worse complexity"
+        indicators: ["nested loop", "forEach inside forEach", "map inside map"]
+      - id: n_plus_one
+        description: "N+1 query pattern"
+        indicators: ["query in loop", "fetch in map"]
+      - id: memory_leak
+        description: "Potential memory leak"
+        indicators: ["global array push", "event listener without cleanup"]
+      - id: blocking_io
+        description: "Blocking I/O in async context"
+        indicators: ["readFileSync", "execSync"]
+
+  maintainability:
+    weight: 0.25
+    description: "Code is readable and maintainable"
+    thresholds:
+      max_cyclomatic_complexity: 15
+      max_function_length: 50
+      max_file_length: 500
+      max_parameters: 5
+    checks:
+      - id: clear_naming
+        description: "Variables and functions have descriptive names"
+      - id: reasonable_complexity
+        description: "Functions are not overly complex"
+      - id: proper_structure
+        description: "Code is well-organized"
+
+  test_coverage:
+    weight: 0.25
+    description: "Changes have corresponding tests"
+    thresholds:
+      minimum_coverage: 0.80
+      require_tests_for_new_functions: true
+    checks:
+      - id: tests_exist
+        description: "Test files exist for modified code"
+      - id: edge_cases_covered
+        description: "Edge cases have test coverage"
+
+# Scoring configuration
+scoring:
+  tier1_pass_threshold: 1.0  # All tier1 checks must pass
+  tier2_acceptable_threshold: 0.60
+
+  verdicts:
+    approved:
+      tier1_passed: true
+      tier2_min_score: 0.60
+    needs_review:
+      tier1_passed: true
+      tier2_min_score: 0.0
+    blocked:
+      tier1_passed: false
+
+# Command-specific validation overrides
+# These override the default tier1/tier2 requirements per command
+command_overrides:
+  refactor:
+    tier1_required: true
+    tier1_checks:
+      - security
+      - error_handling
+      - breaking_changes
+      - cross_verification
+    tier2_required: true
+    tier2_threshold: 0.80
+    consensus_threshold: 0.80
+    consensus_action:
+      high: auto_proceed        # >=80%: Use unified recommendation
+      medium: show_disagreements # 50-79%: Highlight to user
+      low: block_and_escalate    # <50%: Human review required
+
+  detection-coverage:
+    tier1_required: true
+    tier1_checks:
+      - cross_verification
+    tier2_required: false
+    consensus_threshold: 0.70  # Lower threshold for MITRE mapping
+
+  improve-readme:
+    tier1_required: false
+    tier2_required: true
+    tier2_checks:
+      - maintainability
+    parallel_agents: false
+
+  improve-docs:
+    tier1_required: false
+    tier2_required: true
+    tier2_checks:
+      - maintainability
+    parallel_agents_condition:
+      type: total_lines_changed
+      threshold: 500
+
+  generate-diagrams:
+    tier1_required: false
+    tier2_required: false
+    parallel_agents_condition:
+      type: unique_imports
+      threshold: 5
+
+  code-quality:  # Skill (auto-triggered)
+    tier1_required: true
+    tier1_checks:
+      - security
+      - error_handling
+    tier2_required: true
+    tier2_threshold: 0.60
+    auto_trigger: true
+    trigger_patterns:
+      security:
+        - auth|login|session|jwt
+        - crypto|encrypt|hash|secret
+        - api_key|password|token|credential
+        - sanitize|validate|escape
+      complexity:
+        file_lines: 500
+        function_count: 10
+        class_count: 5

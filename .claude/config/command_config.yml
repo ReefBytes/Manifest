@@ -1,0 +1,238 @@
+# Command Configuration
+# Thresholds and policies for Claude Code native commands
+# Referenced by commands in ~/.claude/commands/
+
+# Parallel agent trigger thresholds (configurable)
+thresholds:
+  # Documentation commands
+  improve_docs_lines: 500         # Trigger parallel agents when total doc lines > 500
+  generate_diagrams_modules: 5    # Trigger when analyzing 5+ unique imports/modules
+
+  # Code quality skill auto-triggers
+  skill_file_lines: 500           # File > 500 lines
+  skill_function_count: 10        # > 10 functions per file
+  skill_class_count: 5            # > 5 classes per file
+  skill_cyclomatic_complexity: 15 # Cyclomatic complexity > 15
+
+# Security patterns that trigger code-quality skill
+security_patterns:
+  # Authentication/authorization
+  - auth
+  - login
+  - session
+  - jwt
+  - oauth
+
+  # Cryptography
+  - crypto
+  - encrypt
+  - decrypt
+  - hash
+  - salt
+
+  # Secrets handling
+  - secret
+  - api_key
+  - password
+  - token
+  - credential
+  - private_key
+
+  # Input validation
+  - sanitize
+  - validate
+  - escape
+  - filter
+
+# Consensus thresholds for parallel agent decisions
+consensus:
+  high: 80      # >=80%: Auto-proceed with unified recommendation
+  medium: 50    # 50-79%: Highlight disagreements to user
+  low: 0        # <50%: Block and escalate for human review
+
+# Prioritization hierarchy for synthesis (in order)
+synthesis_priority:
+  - security        # Security issues always first
+  - correctness     # Functional bugs
+  - performance     # Performance issues
+  - maintainability # Code quality
+  - style           # Formatting and style
+
+# Tool policies per command
+tool_policies:
+  detection-coverage:
+    allowed:
+      - Read
+      - Glob
+      - Grep
+    forbidden:
+      - Bash
+      - Write
+      - Edit
+    parallel_agents: always
+    validation_tier: 1
+
+  improve-readme:
+    allowed:
+      - Read
+      - Glob
+      - Grep
+    forbidden:
+      - Bash
+    parallel_agents: never
+    validation_tier: 2
+
+  refactor:
+    allowed:
+      - Read
+      - Glob
+      - Grep
+    forbidden:
+      - Bash
+      - Write
+      - Edit  # Read-only analysis
+    parallel_agents: always
+    validation_tier: 1
+
+  generate-diagrams:
+    allowed:
+      - Read
+      - Glob
+      - Grep
+    forbidden:
+      - Bash  # No shell for security
+    parallel_agents: conditional
+    trigger_condition: unique_imports >= 5
+    validation_tier: 2
+
+  improve-docs:
+    allowed:
+      - Read
+      - Glob
+      - Grep
+    forbidden:
+      - Bash
+    parallel_agents: conditional
+    trigger_condition: total_doc_lines >= 500
+    validation_tier: 2
+
+  code-quality:  # skill
+    allowed:
+      - Read
+      - Glob
+      - Grep
+    forbidden:
+      - Bash
+      - Write
+      - Edit  # Read-only for auto-trigger
+    parallel_agents: always
+    validation_tier: 1
+
+# Error recovery strategies
+error_recovery:
+  timeout_seconds: 120
+  max_retries: 1
+  fallback_strategy: single_agent  # Options: single_agent, warn_user, abort
+
+  on_timeout:
+    action: retry_once_then_fallback
+    message: "Parallel agents timed out, falling back to single-agent analysis"
+
+  on_one_agent_fails:
+    action: continue_with_available
+    message: "One agent failed, continuing with available agent output"
+
+  on_both_agents_fail:
+    action: warn_and_proceed
+    message: "Both agents failed, proceeding without parallel validation"
+
+  on_synthesis_fails:
+    action: show_raw_outputs
+    message: "Synthesis failed, presenting raw agent outputs"
+
+# Parallel agent script configuration
+parallel_agent:
+  script_path: ~/.claude/scripts/parallel_agent.sh
+  output_dir: ~/.claude/.agent_outputs
+  default_options:
+    - --json
+    - --validate
+  modes:
+    review: --review
+    analyze: --analyze
+    prompt: ""  # Generic prompt mode
+
+# Model selection configuration
+model_selection:
+  # Cursor Agent model tiers
+  cursor:
+    tiers:
+      mini: gpt-4o-mini        # Lightweight, fast, cheap
+      flash: gpt-4o            # Balanced performance
+      advanced: o1-preview     # Maximum capability
+    default: auto              # Let Cursor auto-select
+
+  # Claude CLI model tiers
+  claude:
+    tiers:
+      haiku: haiku             # Fast, economical
+      sonnet: sonnet           # Balanced (recommended)
+      opus: opus               # Maximum capability
+    default: sonnet
+
+  # Gemini CLI model tiers (for reference)
+  gemini:
+    tiers:
+      flash: gemini-2.0-flash  # Fast
+      pro: gemini-2.0-pro      # Advanced
+    default: flash
+
+# Task-based model defaults (used by orchestrator)
+# The orchestrating agent (Claude) selects models based on task type
+task_model_defaults:
+  security:
+    cursor: advanced
+    claude: opus
+    gemini: pro
+    reason: "Security-critical code requires maximum model capability"
+
+  review:
+    cursor: flash
+    claude: sonnet
+    gemini: flash
+    reason: "Code review benefits from balanced capability/speed"
+
+  analyze:
+    cursor: flash
+    claude: sonnet
+    gemini: flash
+    reason: "Analysis tasks need good reasoning without opus cost"
+
+  improve:
+    cursor: mini
+    claude: haiku
+    gemini: flash
+    reason: "Improvement suggestions can use lighter models"
+
+  quick:
+    cursor: mini
+    claude: haiku
+    gemini: flash
+    reason: "Quick queries use lightest models for speed"
+
+# Credit exhaustion fallback chains
+credit_fallback:
+  cursor:
+    chain:
+      - advanced
+      - flash
+      - mini
+      - auto
+    final_fallback: auto
+
+  claude:
+    chain:
+      - opus
+      - sonnet
+      - haiku
+    final_fallback: haiku

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(~/.claude/scripts/parallel_agent.sh:*)",
+      "Bash(./bootstrap.sh:*)"
+    ]
+  }
+}
