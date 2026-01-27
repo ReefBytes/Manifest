@@ -1,5 +1,13 @@
 # CLAUDE.md
 
+> Repository context and guidance for Claude Code when working with this codebase
+
+**Last Updated**: 2026-01-27
+**Audience**: AI assistants (Claude Code), contributors
+**Purpose**: Provide Claude Code with repository structure, deployment process, and testing guidelines
+
+---
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Repository Purpose
@@ -136,3 +144,15 @@ Commands are invoked as `/my-command` in Claude Code.
 - `APPROVED`: Tier 1 passes, Tier 2 score >= 0.60
 - `NEEDS_REVIEW`: Tier 1 passes, Tier 2 score < 0.60
 - `BLOCKED`: Any Tier 1 check fails
+
+---
+
+## Related Documents
+
+- [README.md](README.md) - Project overview and quick start
+- [docs/README.md](docs/README.md) - Documentation hub
+- [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) - First-time setup walkthrough
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - Complete configuration reference
+- [docs/ARCHITECTURE_DIAGRAMS.md](docs/ARCHITECTURE_DIAGRAMS.md) - Visual system documentation
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common problems and solutions
+- [.claude/CLAUDE.md](.claude/CLAUDE.md) - Orchestration guide (deployed to ~/.claude/)
