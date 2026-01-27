@@ -218,12 +218,14 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --cursor-only)
+            RUN_CURSOR=true
             RUN_GEMINI=false
             RUN_CLAUDE=false
             shift
             ;;
         --gemini-only)
             RUN_CURSOR=false
+            RUN_GEMINI=true
             RUN_CLAUDE=false
             shift
             ;;

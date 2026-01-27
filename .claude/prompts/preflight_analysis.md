@@ -174,13 +174,6 @@ command_overrides:
       medium: show_disagreements # 50-79%: Highlight to user
       low: block_and_escalate    # <50%: Human review required
 
-  detection-coverage:
-    tier1_required: true
-    tier1_checks:
-      - cross_verification
-    tier2_required: false
-    consensus_threshold: 0.70  # Lower threshold for MITRE mapping
-
   improve-readme:
     tier1_required: false
     tier2_required: true

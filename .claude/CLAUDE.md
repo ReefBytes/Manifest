@@ -417,7 +417,6 @@ Claude Code native commands are available in `~/.claude/commands/`. These integr
 
 | Command | Description | Parallel Agents |
 |---------|-------------|-----------------|
-| `/detection-coverage` | Analyze MITRE ATT&CK detection coverage | ALWAYS |
 | `/improve-readme` | Improve README documentation | NO |
 | `/refactor` | Python codebase security and quality analysis | ALWAYS |
 | `/generate-diagrams` | Generate Mermaid architecture diagrams | CONDITIONAL (5+ modules) |
@@ -426,9 +425,6 @@ Claude Code native commands are available in `~/.claude/commands/`. These integr
 ### Command Usage
 
 ```bash
-# Analyze MITRE coverage with parallel agent validation
-/detection-coverage ./coverage-report.md
-
 # Comprehensive Python refactoring analysis
 /refactor src/
 
@@ -474,7 +470,6 @@ When triggered, it provides inline feedback without blocking user workflow.
 ~/.claude/
 ├── CLAUDE.md                        # This orchestration guide
 ├── commands/                        # User-invoked commands
-│   ├── detection-coverage.md
 │   ├── improve-readme.md
 │   ├── refactor.md
 │   ├── generate-diagrams.md

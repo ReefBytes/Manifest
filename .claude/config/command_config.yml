@@ -60,18 +60,6 @@ synthesis_priority:
 
 # Tool policies per command
 tool_policies:
-  detection-coverage:
-    allowed:
-      - Read
-      - Glob
-      - Grep
-    forbidden:
-      - Bash
-      - Write
-      - Edit
-    parallel_agents: always
-    validation_tier: 1
-
   improve-readme:
     allowed:
       - Read
