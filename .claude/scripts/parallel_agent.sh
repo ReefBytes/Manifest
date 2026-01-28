@@ -103,36 +103,39 @@ load_services_config() {
         return 0
     fi
 
-    # Parse YAML using grep (portable, no external dependencies)
+    # Parse YAML using awk in a single pass to avoid repeated I/O
     # Look for "enabled: true" or "enabled: false" under each service
+    local config_values
+    config_values=$(awk '
+    function get_indent(s) { match(s, /^[[:space:]]*/); return RLENGTH }
+    BEGIN { ctx=""; indent=0; child_indent=-1 }
 
-    # Claude service
-    local claude_section=$(sed -n '/^[[:space:]]*claude:/,/^[[:space:]]*[a-z]*:/p' "$SERVICES_CONFIG" | head -20)
-    if echo "$claude_section" | grep -qE "enabled:[[:space:]]*false"; then
-        RUN_CLAUDE=false
-    elif echo "$claude_section" | grep -qE "enabled:[[:space:]]*true"; then
-        RUN_CLAUDE=true
+    /^[[:space:]]*claude:/ { ctx="claude"; indent=get_indent($0); child_indent=-1; next }
+    /^[[:space:]]*gemini:/ { ctx="gemini"; indent=get_indent($0); child_indent=-1; next }
+    /^[[:space:]]*cursor:/ { ctx="cursor"; indent=get_indent($0); child_indent=-1; next }
+
+    ctx != "" {
+        if ($0 ~ /^[[:space:]]*$/ || $0 ~ /^[[:space:]]*#/) next
+        curr = get_indent($0)
+        if (curr <= indent) { ctx=""; next }
+        if (child_indent == -1) child_indent = curr
+        if (curr == child_indent) {
+            if (ctx=="claude" && /enabled:[[:space:]]*false/) print "RUN_CLAUDE=false"
+            if (ctx=="claude" && /enabled:[[:space:]]*true/) print "RUN_CLAUDE=true"
+            if (ctx=="gemini" && /enabled:[[:space:]]*false/) print "RUN_GEMINI=false"
+            if (ctx=="gemini" && /enabled:[[:space:]]*true/) print "RUN_GEMINI=true"
+            if (ctx=="cursor" && /enabled:[[:space:]]*false/) print "RUN_CURSOR=false"
+            if (ctx=="cursor" && /enabled:[[:space:]]*true/) print "RUN_CURSOR=true"
+        }
+    }
+
+    /^minimum_agents:/ { match($0, /[0-9]+/); print "min_agents=" substr($0, RSTART, RLENGTH) }
+    ' "$SERVICES_CONFIG")
+
+    local min_agents=2
+    if [[ -n "$config_values" ]]; then
+        eval "$config_values"
     fi
-
-    # Gemini service
-    local gemini_section=$(sed -n '/^[[:space:]]*gemini:/,/^[[:space:]]*[a-z]*:/p' "$SERVICES_CONFIG" | head -20)
-    if echo "$gemini_section" | grep -qE "enabled:[[:space:]]*false"; then
-        RUN_GEMINI=false
-    elif echo "$gemini_section" | grep -qE "enabled:[[:space:]]*true"; then
-        RUN_GEMINI=true
-    fi
-
-    # Cursor service
-    local cursor_section=$(sed -n '/^[[:space:]]*cursor:/,/^[[:space:]]*[a-z]*:/p' "$SERVICES_CONFIG" | head -20)
-    if echo "$cursor_section" | grep -qE "enabled:[[:space:]]*false"; then
-        RUN_CURSOR=false
-    elif echo "$cursor_section" | grep -qE "enabled:[[:space:]]*true"; then
-        RUN_CURSOR=true
-    fi
-
-    # Check minimum agents requirement
-    local min_agents=$(grep -E "^minimum_agents:" "$SERVICES_CONFIG" | grep -oE "[0-9]+" | head -1)
-    min_agents=${min_agents:-2}
 
     local enabled_count=0
     [[ "$RUN_CLAUDE" == true ]] && enabled_count=$((enabled_count + 1))
