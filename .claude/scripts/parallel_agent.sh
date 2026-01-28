@@ -561,9 +561,9 @@ run_gemini() {
     printf '%s' "$prompt" > "$prompt_file"
 
     echo -e "${BLUE}[Gemini CLI]${NC} Starting with model: $GEMINI_MODEL..."
-    # Gemini CLI: pipe prompt via stdin for reliable handling
+    # Gemini CLI: use input redirection for reliable handling (saves cat process)
     run_with_retry "Gemini CLI" "$output_file" bash -c \
-        "cat '$prompt_file' | gemini --output-format text --model '$GEMINI_MODEL' ${include_args[*]}"
+        "gemini --output-format text --model '$GEMINI_MODEL' ${include_args[*]} < '$prompt_file'"
 }
 
 # Run Claude CLI with model selection
@@ -581,9 +581,9 @@ run_claude() {
 
     echo -e "${BLUE}[Claude CLI]${NC} Starting with model: $CLAUDE_MODEL..."
 
-    # Claude CLI: use prompt file as positional argument
+    # Claude CLI: use input redirection (saves cat process)
     if ! run_with_retry_capture_stderr "Claude CLI" "$output_file" "$stderr_file" \
-        bash -c "cat '$prompt_file' | claude --print --output-format text --model '$CLAUDE_MODEL'"; then
+        bash -c "claude --print --output-format text --model '$CLAUDE_MODEL' < '$prompt_file'"; then
 
         # Check for credit exhaustion
         if check_credit_exhaustion "$stderr_file" "Claude"; then
@@ -593,7 +593,7 @@ run_claude() {
 
             # Retry with haiku (cheapest model)
             run_with_retry "Claude CLI (fallback)" "$output_file" \
-                bash -c "cat '$prompt_file' | claude --print --output-format text --model haiku"
+                bash -c "claude --print --output-format text --model haiku < '$prompt_file'"
         fi
     fi
 }
